@@ -1,0 +1,20 @@
+/* Wherever needed, use <include filename> in the statacode, 
+	i.e. here include localdefs.do  */
+
+/* Regarding the depth of the order book and cutoffs */
+scalar maxdep = 150
+*scalar maxdep = 50 /* on Trillian */
+*scalar maxdep = 5  /* on Amigo for test run */
+
+/* For PrepareIndexFreq */
+scalar show_int = 5000 /* Show where we are every 5000 iterations */
+
+/* Price Range in basis points */
+ local bpvec 5 10 25 50 100
+/* Time Interval in seconds */
+ local ttvec 5 10 25 60 600 3600
+
+/* When assembling the index portfolio */
+scalar preci = 0.001 /* This is the precision of the bid/ask volume */
+scalar maxiter = 10*scalar(maxdep) /* This is the max depth of the virtual index order book */
+*scalar preci = 1 

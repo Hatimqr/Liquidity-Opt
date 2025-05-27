@@ -1,0 +1,124 @@
+/* Wherever needed, use <include filename> in the statacode, 
+	i.e. here include localdefs.do  */
+
+/* Define the various paths */
+qui pwd
+local start_path  `c(pwd)'
+
+local data_path  "../Data"
+*local raw_path   "`data_path'/Raw/Stocks"
+*local raw_path   "/Data/DeutscheBoerse/OrderBooks/Stocks"
+if c(hostname)=="Amigo"|c(hostname)=="Arthur" {
+    *disp "Amigo hier"
+    local raw_path     "`data_path'/Raw/Stocks"
+    local daily_path   "`data_path'/Daily"
+    local ells_path    "`data_path'/Ells"
+    local bystock_path "`data_path'/ByStock"
+    local ladder_path  "`data_path'/Ladder"
+}
+else {
+    *disp "Kein Amigo hier"
+    local raw_path     "/Fast/Stocks"
+    local daily_path   "/Fast/Daily"
+    local ells_path    "/Fast/Ells"
+    local bystock_path "/Fast/ByStock"
+    local ladder_path  "/Fast/Ladder"
+}
+
+local idx_path   "`data_path'/Raw/DAX_Composition"
+local temp_path  "`data_path'/Temp"
+local stock_path "`data_path'/Stocks"
+local index_path "`data_path'/Index"
+local save_path  "`data_path'/Final"
+
+local    defs_path "./Definitions"
+local     sub_path "./Subroutines"
+local results_path "../Results"
+
+/* Which day/s? */
+*local datum 20231128 /* For SAP */
+*local datum 20231204 /* For RWE */
+*local datum 20231208 /* For RWE */
+
+*for full run
+local datum_start = mdy(01,01,2020)  /* Enter in Month,Day,Year form! */
+local datum_ende  = mdy(10,31,2024)  /*  on Trillian */
+*local datum_ende  = mdy(10,31,2024)  /*  on Trillian */
+*for Amigo run
+ local datum_start = mdy(01,09,2023)  /* Enter in Month,Day,Year form! */
+ local datum_ende  = mdy(01,09,2023)  /*  on Trillian */
+
+/* when working with aggregated virtual order book */
+*local first_trade_time `=  8*60*60-1'
+*local last_trade_time  `= 16*60*60 + 40*60 + 1'
+
+/* Which stocks */
+*local stock_liste "ALV DB1 FRE RWE BAS" 
+local stock_a "DBK BMW BEI CON DHL DTE FRE FME DB1 HEI" 
+local stock_b "HEN3 1COV IFX MRK PUM RHM RWE MBG SAP SRT3" 
+local stock_c "SIE WDI TKA VOW3 LHA HNR1 ALV MUV2 MTX DWNI"  /* CH Careful with WDI */
+*local stock_c "SIE     TKA VOW3 LHA HNR1 ALV MUV2 MTX DWNI" 
+local stock_d "HFG BNR ADS VNA DHER BAS BAYN CBK DTG EOAN" 
+local stock_e "ENR P911 PAH3 SHL SY1 ZAL LIN AIR QIA"  /* No LIN in 12 2023 */
+*local stock_e "ENR P911 PAH3 SHL SY1 ZAL     AIR QIA" 
+local stock_liste "`stock_a' `stock_b' `stock_c' `stock_d' `stock_e'" 
+*local stock_liste "DBK BMW BEI CON DHL" 
+local stock_num : word count `stock_liste'
+/* will be modified in: 01_ReadIndexData to add in the entire DAX Sample */
+local Gesamt_liste : list local(Gesamt_liste) | local(stock_liste)
+
+/* Regarding the depth of the order book and cutoffs */
+scalar maxdep = 150
+*scalar maxdep = 50 /* on Trillian */
+*scalar maxdep = 5  /* on Amigo for test run */
+
+/* For PrepareIndexFreq */
+scalar show_int = 5000 /* Show where we are every 5000 iterations */
+
+/* Price Range in basis points */
+ local bpvec 5 10 25 50 100
+/* Time Interval in seconds */
+ local ttvec 5 10 25 60 600 3600
+
+/* When assembling the index portfolio */
+scalar preci = 0.001 /* This is the precision of the bid/ask volume */
+scalar maxiter = 10*scalar(maxdep) /* This is the max depth of the virtual index order book */
+*scalar preci = 1 
+
+/* For SAP Test Data */
+*local stock_liste "SAP" 
+*scalar maxdep = 5
+*local datum_start = mdy(11,28,2023)  /* Enter in Month,Day,Year form! */
+*local datum_ende  = mdy(11,28,2023)
+
+/* Buy/Sell/Auction Events? */
+ local bsalist "buy sel auc"
+ *local bsalist "buy sel    " /* Removes auctions from data! */
+
+/* Which Frequencies? */
+ local freqliste "Sec Min Hour"
+
+ local preisliste trade_price /* last_buy_price last_sel_price */
+ local volumliste trade_volume
+ local valueliste trade_value
+
+/* This creates a local macro with the names of all ask/bid prices */
+/*  and the volumes */
+/*  First initialize the lists: */
+ local ask_liste
+ local bid_liste
+ local askbid_vol 
+ local askbid_val 
+
+/* Several of the macros should include the max depth */
+/*  The loop through all the values for depth */
+forvalues i = 1/`=scalar(maxdep)' {
+ local ask_liste   `ask_liste'  ask`i'_price
+ local bid_liste   `bid_liste'  bid`i'_price
+ local askbid_vol  `askbid_vol' ask`i'_vol bid`i'_vol
+ local askbid_val  `askbid_val' ask`i'_val bid`i'_val
+ local preisliste  `preisliste' ask`i'_price bid`i'_price
+ local volumliste  `volumliste' ask`i'_volume bid`i'_volume
+ local valueliste  `valueliste' ask`i'_value bid`i'_value
+}
+

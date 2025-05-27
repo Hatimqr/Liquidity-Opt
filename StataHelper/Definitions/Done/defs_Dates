@@ -1,0 +1,19 @@
+/* Wherever needed, use <include filename> in the statacode, 
+	i.e. here include localdefs.do  */
+
+/* Which day/s? */
+*local datum 20231128 /* For SAP */
+*local datum 20231204 /* For RWE */
+*local datum 20231208 /* For RWE */
+
+*for full run
+local datum_start = mdy(01,01,2020)  /* Enter in Month,Day,Year form! */
+local datum_ende  = mdy(10,31,2024)  /*  on Trillian */
+*local datum_ende  = mdy(10,31,2024)  /*  on Trillian */
+*for Amigo run
+ local datum_start = mdy(01,09,2023)  /* Enter in Month,Day,Year form! */
+ local datum_ende  = mdy(01,09,2023)  /*  on Trillian */
+
+/* when working with aggregated virtual order book */
+*local first_trade_time `=  8*60*60-1'
+*local last_trade_time  `= 16*60*60 + 40*60 + 1'
